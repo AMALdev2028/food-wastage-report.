@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Food Wastage Report</title>
+    <style>
+        body {
+            background-color: #222;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: #333;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            border: 2px solid #4caf50;
+        }
+        h2 {
+            text-align: center;
+            color: #fff;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            font-size: 16px;
+            color: #fff;
+            font-weight: bold;
+        }
+        input[type="text"],
+        input[type="number"],
+        select,
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            background-color: #444;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #4caf50;
+            color: white;
+            padding: 14px 32px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .item-summary {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #444;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .item-summary .header {
+            display: flex;
+            justify-content: space-between;
+            color: yellow;
+            font-weight: bold;
+            padding: 8px;
+            border-bottom: 2px solid #555;
+        }
+        .item-summary .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #555;
+            background-color: #555;
+            border-radius: 5px;
+        }
+        .item-summary .item span {
+            font-size: 14px;
+            color: white;
+            padding: 5px;
+            text-align: center;
+            width: 25%;
+        }
+        .item-summary .item .image-container {
+            width: 60px;
+            height: 60px;
+            border-radius: 5px;
+            overflow: hidden;
+            background-color: #666;
+            text-align: center;
+        }
+        .item-summary .item .image-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .item-summary .item .edit {
+            cursor: pointer;
+            color: yellow;
+            text-decoration: underline;
+            text-align: center;
+            width: 25%;
+        }
+        #itemDropdown {
+            background-color: #333;
+            position: absolute;
+            width: 100%;
+            z-index: 10;
+            border-radius: 5px;
+            border: 1px solid #555;
+            display: none;
+        }
+        #itemDropdown div {
+            padding: 10px;
+            cursor: pointer;
+            color: white;
+        }
+        #itemDropdown div:hover {
+            background-color: #555;
+        }
+        #loadingMessage {
+            display: none;
+            color: yellow;
+            text-align: center;
+            margin-top: 20px;
+        }
+        @media (max-width: 768px) {
+            .form-container {
+                padding: 15px;
+            }
+            button {
+                padding: 10px;
+            }
+            .item-summary .item-summary .item span {
+                width: 20%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <img src="https://kappachakkakandhari.com/wp-content/uploads/2024/03/logo.png" alt="Logo" style="max-width: 100%; height: auto ; margin-bottom: 20px;">
+        <h2>Food Wastage Report</h2>
+        <form id="wastageForm">
+            <div class="form-group">
+                <label for="stockTakenBy">Stock Taken By</label>
+                <input type="text" id="stockTakenBy" placeholder="Enter name of the person taking stock" required />
+            </div>
+
+            <div class="form-group">
+                <label for="itemSearch">Item Name</label>
+                <input
+                    type="text"
+                    id="itemSearch"
+                    placeholder="Start typing to search items"
+                    oninput="searchItems()"
+                    required
+                />
+                <div id="itemDropdown"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="qty">Quantity</label>
+                <input type="number" id="qty" placeholder="Enter quantity" required />
+            </div>
+
+            <div class="form-group">
+                <label for="uom">Unit of Measure (UOM)</label>
+                <select id="uom">
+                    <option value="kgs">kgs</option>
+                    <option value="ltrs">ltrs</option>
+                    <option value="nos">nos</option>
+                    <option value="pcs">pcs</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="image">Capture or Upload Image (Mandatory for each item)</label>
+                <input type="file" id="image" accept="image/*" capture="camera" required />
+            </div>
+
+            <div class="item-summary" id="itemSummary" style="display: none;">
+                <div class="header">
+                    <span>Item Name</span>
+                    <span>Quantity</span>
+                    <span>UOM</span>
+                    <span>Image</span>
+                    <span>Action</span>
+                </div>
+            </div>
+
+            <button type="button" onclick="addItemToSummary()">Add Item</button>
+            <button type="button" onclick="toggleSummary()">Show/Hide Summary</button>
+            <button type="button" onclick="generatePDF()">Generate PDF</button>
+            <button type="button" onclick="submitForm()">Submit Report</button>
+            <p id="loadingMessage">Submitting your report...</p>
+        </form>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        let availableItems = [];
+        let selectedItems = [];
+        let editIndex = null;
+        let isSubmitting = false;
+
+        function fetchItems() {
+            google.script.run.withSuccessHandler(function (items) {
+                availableItems = items;
+            }).getAvailableItems();
+        }
+
+        function searchItems() {
+            const searchQuery = document.getElementById('itemSearch').value.toLowerCase();
+            const dropdown = document.getElementById('itemDropdown');
+            dropdown.innerHTML = "";
+            if (searchQuery.length > 0) {
+                const filteredItems = availableItems.filter(item =>
+                    item.itemName.toLowerCase().includes(searchQuery)
+                );
+
+                if (filteredItems.length > 0) {
+                    filteredItems.forEach(item => {
+                        const option = document.createElement("div");
+                        option.textContent = item.itemName;
+                        option.onclick = () => selectItem(item);
+                        dropdown.style.display = "block";
+                        dropdown.appendChild(option);
+                    });
+                } else {
+                    dropdown.style.display = "none";
+                }
+            } else {
+                dropdown.style.display = "none";
+            }
+        }
+
+        function selectItem(item) {
+            document.getElementById('itemSearch').value = item.itemName;
+            document.getElementById('itemDropdown').style.display = "none";
+        }
+
+        function addItemToSummary() {
+            const itemSearch = document.getElementById("itemSearch").value;
+            const qty = document.getElementById("qty").value;
+            const uom = document.getElementById("uom").value;
+            const image = document.getElementById("image").files[0];
+
+            if (!itemSearch || !qty || !image) {
+                alert("Please enter item, quantity, and upload an image.");
+                return;
+            }
+
+            const item = availableItems.find(i => i.itemName === itemSearch);
+
+            if (item) {
+                const itemData = {
+                    itemId: item.itemId,
+                    itemName: item.itemName,
+                    section: item.section,
+                    costPerPortion: item.costPerPortion,
+                    qty: qty,
+                    uom: uom,
+                    image: image ? URL.createObjectURL(image ) : "",
+                };
+
+                if (editIndex !== null) {
+                    selectedItems[editIndex] = itemData;
+                    editIndex = null;
+                } else {
+                    selectedItems.push(itemData);
+                }
+
+                updateSummary();
+                clearFields();
+            } else {
+                alert("Item not found.");
+            }
+        }
+
+        function updateSummary() {
+            const summaryContainer = document.getElementById("itemSummary");
+            summaryContainer.innerHTML = `
+                <div class="header">
+                    <span>Item Name</span>
+                    <span>Quantity</span>
+                    <span>UOM</span>
+                    <span>Image</span>
+                    <span>Action</span>
+                </div>
+            `;
+            selectedItems.forEach((item, index) => {
+                const div = document.createElement("div");
+                div.classList.add("item");
+                div.innerHTML = `
+                    <span>${item.itemName}</span>
+                    <span>${item.qty}</span>
+                    <span>${item.uom}</span>
+                    <div class="image-container"><img src="${item.image}" /></div>
+                    <span class="edit" onclick="editItem(${index})">Edit</span>
+                `;
+                summaryContainer.appendChild(div);
+            });
+            summaryContainer.style.display = selectedItems.length > 0 ? "block" : "none";
+        }
+
+        function clearFields() {
+            document.getElementById("itemSearch").value = "";
+            document.getElementById("qty").value = "";
+            document.getElementById("uom").value = "kgs";
+            document.getElementById("image").value = "";
+        }
+
+        function editItem(index) {
+            const item = selectedItems[index];
+            document.getElementById("itemSearch").value = item.itemName;
+            document.getElementById("qty").value = item.qty;
+            document.getElementById("uom").value = item.uom;
+            editIndex = index;
+        }
+
+        function toggleSummary() {
+            const summaryContainer = document.getElementById("itemSummary");
+            summaryContainer.style.display = summaryContainer.style.display === "none" ? "block" : "none";
+        }
+
+        function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+   
+    // Add report title and additional information
+    doc.text("Food Wastage Report", 14, 20);
+    const date = new Date();
+    doc.text(`Date: ${date.toLocaleDateString()}`, 14, 30);
+    const stockTakenBy = document.getElementById("stockTakenBy").value; // Get the stock taker's name
+    doc.text(`Stock Taken By: ${stockTakenBy}`, 14, 40); // Use the actual name
+
+    const headers = ['Item Name', 'Quantity', 'UOM', 'Image'];
+    const columnWidths = [70, 30, 30, 30]; // Define widths for each column
+    let yPosition = 50; // Start position for the table
+
+    // Add headers to the PDF
+    headers.forEach((header, i) => {
+        doc.text(header, 14 + columnWidths.slice(0, i).reduce((a, b) => a + b, 0), yPosition);
+    });
+
+    // Draw a line under the headers
+    const lineY = yPosition + 5; // Position for the line below the header
+    doc.line(14, lineY, 14 + columnWidths.reduce((a, b) => a + b, 0), lineY); // Draw a line across the header area
+
+    yPosition += 10; // Move down for the first row of data
+
+    // Create an array to hold promises for image loading
+    const imagePromises = selectedItems.map(item => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = item.image;
+            img.onload = function () {
+                // Add text for each item
+                doc.text(item.itemName, 14, yPosition);
+                doc.text(item.qty.toString(), 14 + columnWidths[0], yPosition);
+                doc.text(item.uom, 14 + columnWidths[0] + columnWidths[1], yPosition);
+               
+                // Add image to the PDF (adjusted x position for better alignment)
+                doc.addImage(img, 'JPEG', 20 + columnWidths[0] + columnWidths[1] + 25, yPosition - 8, 20, 20);
+               
+                
+               
+                yPosition += 30; // Move to the next row
+               
+                // Check if we need to add a new page
+                if (yPosition > 250) {
+                    doc.addPage();
+                    yPosition = 20;
+
+                    // Re-add headers on the new page
+                    headers.forEach((header, i) => {
+                        doc.text(header, 14 + columnWidths.slice(0, i).reduce((a, b) => a + b, 0), yPosition);
+                    });
+                    doc.line(14, lineY, 14 + columnWidths.reduce((a, b) => a + b, 0), lineY); // Line under the headers on the new page
+                    yPosition += 10; // Move down for the first row of data on the new page
+                }
+               
+                resolve(); // Resolve the promise when done
+            };
+            img.onerror = function () {
+                reject(new Error(`Failed to load image: ${item.image}`));
+            };
+        });
+    });
+
+    // Wait for all images to load before saving the PDF
+    Promise .all(imagePromises).then(() => {
+        doc.save("Food_Wastage_Report.pdf");
+    }).catch(error => {
+        console.error("Error generating PDF:", error);
+    });
+}
+
+        function submitForm() {
+            const stockTakenBy = document.getElementById("stockTakenBy").value;
+            if (!stockTakenBy || selectedItems.length === 0) {
+                alert("Please fill out all required fields.");
+                return;
+            }
+
+            if (isSubmitting) return; // Prevent further submissions if already submitting
+            isSubmitting = true; // Set the flag to true
+            document.getElementById("loadingMessage").style.display = "block"; // Show loading message
+
+            const formData = {
+                stockTakenBy,
+                items: selectedItems,
+                timestamp: new Date().toISOString(),
+            };
+
+            google.script.run.withSuccessHandler(function (response) {
+                alert(response);
+                window.location.reload();
+            }).withFailureHandler(function (error) {
+                alert("Submission failed: " + error.message);
+            }).submitForm(formData).then(() => {
+                isSubmitting = false; // Reset the flag after submission
+                document.getElementById("loadingMessage").style.display = "none"; // Hide loading message
+            }).catch(() => {
+                isSubmitting = false; // Reset the flag on error
+                document.getElementById("loadingMessage").style.display = "none"; // Hide loading message
+            });
+        }
+
+        window.onload = fetchItems;
+    </script>
+</body>
+</html>
